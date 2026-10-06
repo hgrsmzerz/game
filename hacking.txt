@@ -1,0 +1,372 @@
+ 	```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catch the Coins</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+        background: #75cfff;
+    }
+
+    #game {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+        background: linear-gradient(#62c8ff, #d9f5ff);
+    }
+
+    /* Clouds */
+    .cloud {
+        position: absolute;
+        font-size: 70px;
+        opacity: 0.8;
+        animation: cloudMove 25s linear infinite;
+    }
+
+    .cloud1 {
+        top: 50px;
+        left: -100px;
+    }
+
+    .cloud2 {
+        top: 180px;
+        left: -300px;
+        animation-delay: 8s;
+    }
+
+    @keyframes cloudMove {
+        from {
+            transform: translateX(-200px);
+        }
+        to {
+            transform: translateX(120vw);
+        }
+    }
+
+    #score {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        font-size: 28px;
+        font-weight: bold;
+        color: white;
+        text-shadow: 2px 2px 4px #333;
+        z-index: 10;
+    }
+
+    #lives {
+        position: absolute;
+        top: 60px;
+        left: 20px;
+        font-size: 28px;
+        z-index: 10;
+    }
+
+    #basket {
+        position: absolute;
+        bottom: 35px;
+        left: 50%;
+        transform: translateX(-50%);
+        font-size: 80px;
+        width: 100px;
+        text-align: center;
+        z-index: 5;
+    }
+
+    .item {
+        position: absolute;
+        top: -80px;
+        font-size: 50px;
+        z-index: 4;
+    }
+
+    #gameOver {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0,0,0,0.85);
+        color: white;
+        padding: 40px;
+        border-radius: 20px;
+        text-align: center;
+        z-index: 20;
+        min-width: 300px;
+    }
+
+    #gameOver h1 {
+        margin-top: 0;
+        font-size: 45px;
+        color: #ffcc00;
+    }
+
+    #restart {
+        border: none;
+        padding: 15px 30px;
+        border-radius: 10px;
+        background: #00c853;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+    }
+
+    #restart:hover {
+        background: #00a844;
+    }
+
+    #instructions {
+        position: absolute;
+        bottom: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.35);
+        color: white;
+        padding: 8px 15px;
+        border-radius: 10px;
+        z-index: 10;
+    }
+</style>
+</head>
+
+<body>
+
+<div id="game">
+
+    <div class="cloud cloud1">☁️</div>
+    <div class="cloud cloud2">☁️</div>
+
+    <div id="score">Score: 0</div>
+    <div id="lives">❤️❤️❤️</div>
+
+    <div id="basket">🧺</div>
+
+    <div id="instructions">
+        ← → or A / D to move
+    </div>
+
+    <div id="gameOver">
+        <h1>GAME OVER</h1>
+        <p id="finalScore">Score: 0</p>
+        <button id="restart">PLAY AGAIN</button>
+    </div>
+
+</div>
+
+<script>
+
+const game = document.getElementById("game");
+const basket = document.getElementById("basket");
+const scoreText = document.getElementById("score");
+const livesText = document.getElementById("lives");
+const gameOverScreen = document.getElementById("gameOver");
+const finalScore = document.getElementById("finalScore");
+const restartButton = document.getElementById("restart");
+
+let basketX = window.innerWidth / 2;
+let score = 0;
+let lives = 3;
+let gameRunning = true;
+let speed = 3;
+
+let keys = {
+    left: false,
+    right: false
+};
+
+/* Keyboard controls */
+document.addEventListener("keydown", function(e) {
+
+    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+        keys.left = true;
+    }
+
+    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+        keys.right = true;
+    }
+});
+
+document.addEventListener("keyup", function(e) {
+
+    if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") {
+        keys.left = false;
+    }
+
+    if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") {
+        keys.right = false;
+    }
+});
+
+/* Move basket */
+function moveBasket() {
+
+    if (!gameRunning) return;
+
+    if (keys.left) {
+        basketX -= 8;
+    }
+
+    if (keys.right) {
+        basketX += 8;
+    }
+
+    const maxX = window.innerWidth - 100;
+
+    if (basketX < 0) {
+        basketX = 0;
+    }
+
+    if (basketX > maxX) {
+        basketX = maxX;
+    }
+
+    basket.style.left = basketX + "px";
+
+    requestAnimationFrame(moveBasket);
+}
+
+/* Create falling item */
+function createItem() {
+
+    if (!gameRunning) return;
+
+    const item = document.createElement("div");
+    item.classList.add("item");
+
+    const bomb = Math.random() < 0.20;
+
+    if (bomb) {
+        item.innerHTML = "💣";
+        item.dataset.type = "bomb";
+    } else {
+        item.innerHTML = "🪙";
+        item.dataset.type = "coin";
+    }
+
+    item.style.left =
+        Math.random() * (window.innerWidth - 60) + "px";
+
+    game.appendChild(item);
+
+    let y = -80;
+
+    function fall() {
+
+        if (!gameRunning) {
+            item.remove();
+            return;
+        }
+
+        y += speed;
+        item.style.top = y + "px";
+
+        const itemRect = item.getBoundingClientRect();
+        const basketRect = basket.getBoundingClientRect();
+
+        /* Collision */
+        if (
+            itemRect.bottom >= basketRect.top &&
+            itemRect.left < basketRect.right &&
+            itemRect.right > basketRect.left
+        ) {
+
+            if (item.dataset.type === "coin") {
+
+                score++;
+                scoreText.innerText = "Score: " + score;
+
+                /* Increase difficulty */
+                if (score % 5 === 0) {
+                    speed += 0.5;
+                }
+
+            } else {
+
+                lives--;
+
+                updateLives();
+
+                if (lives <= 0) {
+                    endGame();
+                }
+            }
+
+            item.remove();
+            return;
+        }
+
+        /* Item missed */
+        if (y > window.innerHeight) {
+            item.remove();
+            return;
+        }
+
+        requestAnimationFrame(fall);
+    }
+
+    fall();
+}
+
+/* Update lives */
+function updateLives() {
+
+    if (lives === 3) {
+        livesText.innerHTML = "❤️❤️❤️";
+    }
+
+    if (lives === 2) {
+        livesText.innerHTML = "❤️❤️🖤";
+    }
+
+    if (lives === 1) {
+        livesText.innerHTML = "❤️🖤🖤";
+    }
+
+    if (lives <= 0) {
+        livesText.innerHTML = "🖤🖤🖤";
+    }
+}
+
+/* Game over */
+function endGame() {
+
+    gameRunning = false;
+
+    finalScore.innerText =
+        "Your Score: " + score;
+
+    gameOverScreen.style.display = "block";
+}
+
+/* Restart */
+restartButton.addEventListener("click", function() {
+
+    location.reload();
+
+});
+
+/* Start game */
+moveBasket();
+
+setInterval(function() {
+
+    createItem();
+
+}, 800);
+
+</script>
+
+</body>
+</html>
+```
